@@ -1,11 +1,15 @@
+import { ParseDefinition } from '../interfaces'
 import js from './js'
 import coffee from './coffee'
 
-export default {
+const extensions: {
+  [key: string]: ParseDefinition,
+} = {
   js,
   jsx: js,
   ts: js,
   tsx: js,
   coffee,
-  html: js,
 }
+
+export default extensions

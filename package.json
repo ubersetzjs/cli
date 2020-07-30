@@ -1,12 +1,29 @@
 {
   "name": "ubersetz",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepare": "npm run build",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "build": "rm -r ./dist; tsc && chmod +x dist/index.js",
+    "lint": "eslint --quiet --ext .ts --ext .tsx ."
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "author": "Max Nowack <max.nowack@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^3.7.1",
+    "@typescript-eslint/parser": "^3.7.1",
+    "eslint": "^7.5.0",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-import-resolver-typescript": "^2.2.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-prefer-object-spread": "^1.2.1",
+    "eslint-plugin-sort-class-members": "^1.7.0",
+    "nodemon": "^2.0.4",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.7"
+  }
 }

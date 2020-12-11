@@ -6,7 +6,7 @@ import fs from 'fs-extra'
 import pMap from 'p-map'
 import sortBy from 'lodash.sortby'
 import findFiles from './utils/findFiles'
-import extensions from './extensions'
+import config from './config'
 import extractPhrase from './extractPhrase'
 import { Context, Phrase } from './interfaces'
 
@@ -16,18 +16,19 @@ const start = async () => {
     title: 'searching files',
     task: ctx => findFiles(filePath, {
       ignoreFiles: ['.gitignore', '.ubersetzignore'],
-      pattern: new RegExp(Object.keys(extensions).map(e => `\\.${e}$`).join('|')),
+      pattern: new RegExp(config.getPatternExtensions().map(e => `\\.${e}$`).join('|')),
     }).then((files) => {
       ctx.files = files
     }),
-  }, ...Object.keys(extensions).map<ListrTask<Context>>(ext => ({
+  }, ...config.getPatternExtensions().map<ListrTask<Context>>(ext => ({
     title: `extracting phrases from ${ext} files`,
     task: async (ctx) => {
       const phrases: Phrase[] = []
       await pMap(ctx.files, async (name) => {
         if (!new RegExp(`\\.${ext}$`).test(name)) return
         const fileContent = await fs.readFile(path.join(filePath, name), 'utf8')
-        extractPhrase(fileContent, extensions[ext]).forEach(phrase => phrases.push(phrase))
+        extractPhrase(fileContent, config.getPatternRegExp(ext))
+          .forEach(phrase => phrases.push(phrase))
       })
       ctx.phrases = [...ctx.phrases || [], ...phrases]
     },

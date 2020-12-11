@@ -15,6 +15,7 @@ export default async function findFiles(dir: string, options: Options) {
   })
 
   return pFilter(files, async (name) => {
+    if (name.startsWith('.git/')) return false
     const stat = await fs.stat(path.join(dir, name))
     if (stat.isDirectory()) return false
     if (options.pattern) return options.pattern.test(name)

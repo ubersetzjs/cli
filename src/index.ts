@@ -20,27 +20,40 @@ const start = async () => {
     }).then((files) => {
       ctx.files = files
     }),
-  }, ...config.getPatternExtensions().map<ListrTask<Context>>(ext => ({
-    title: `extracting phrases from ${ext} files`,
-    task: async (ctx) => {
-      const phrases: Phrase[] = []
-      await pMap(ctx.files, async (name) => {
-        if (!new RegExp(`\\.${ext}$`).test(name)) return
-        const fileContent = await fs.readFile(path.join(filePath, name), 'utf8')
-        extractPhrase(fileContent, config.getPatternRegExp(ext))
-          .forEach(phrase => phrases.push(phrase))
-      })
-      ctx.phrases = [...ctx.phrases || [], ...phrases]
+  }, {
+    title: 'extracting phrases from files',
+    task: ctx => new Listr(config.getPatternExtensions().map<ListrTask<Context>>(ext => ({
+      title: ext,
+      task: async () => {
+        const phrases: Phrase[] = []
+        await pMap(ctx.files, async (name) => {
+          if (!new RegExp(`\\.${ext}$`).test(name)) return
+          const fileContent = await fs.readFile(path.join(filePath, name), 'utf8')
+          extractPhrase(fileContent, config.getPatternRegExp(ext))
+            .forEach(phrase => phrases.push(phrase))
+        })
+        ctx.phrases = sortBy([...ctx.phrases || [], ...phrases], p => p.key.toLowerCase())
+      },
+    })), { concurrent: true }),
+  }, {
+    title: 'check phrases',
+    task: (ctx) => {
+      ctx.extractedPhrases = ctx.phrases.reduce<Record<string, string>>((memo, phrase) => {
+        if (memo[phrase.key] != null && memo[phrase.key] !== phrase.defaultValue) {
+          throw new Error(`duplicate key '${phrase.key}', current: '${memo[phrase.key]}', new: '${phrase.defaultValue}'`)
+        }
+
+        return {
+          ...memo,
+          [phrase.key]: phrase.defaultValue,
+        }
+      }, {})
     },
-  })), {
+  }, {
     title: 'write extractions file',
     task: async (ctx) => {
       const extractsFile = path.join(filePath, 'messages.extracted.json')
-      const sortedPhrases = sortBy(ctx.phrases, p => p.key.toLowerCase())
-      await fs.writeJSON(extractsFile, sortedPhrases.reduce((memo, phrase) => ({
-        ...memo,
-        [phrase.key]: phrase.defaultValue,
-      }), {}), {
+      await fs.writeJSON(extractsFile, ctx.extractedPhrases, {
         spaces: 2,
       })
     },

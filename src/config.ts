@@ -1,5 +1,5 @@
 import loadRc from 'rc'
-import { Config as ConfigType } from './interfaces'
+import { Config as ConfigType, AutotranslationOptions } from './interfaces'
 
 class Config {
   private config: ConfigType
@@ -30,6 +30,19 @@ class Config {
 
   public getExtractionFilePath() {
     return this.config.extractionFile
+  }
+
+  public getAutotranslationOptions(): AutotranslationOptions {
+    const plugin = !this.config.autotranslate || typeof this.config.autotranslate === 'string'
+      ? this.config.autotranslate
+      : this.config.autotranslate.plugin
+    const options = !this.config.autotranslate || typeof this.config.autotranslate === 'string'
+      ? {}
+      : this.config.autotranslate
+    return {
+      ...options,
+      plugin,
+    }
   }
 }
 

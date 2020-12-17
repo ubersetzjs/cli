@@ -4,6 +4,7 @@ import path from 'path'
 import Listr, { ListrTask } from 'listr'
 import fs from 'fs-extra'
 import pMap from 'p-map'
+import { Observable } from 'rxjs'
 import sortBy from 'lodash.sortby'
 import findFiles from './utils/findFiles'
 import config from './config'
@@ -12,6 +13,7 @@ import { Context, Phrase } from './interfaces'
 import canReadFile from './utils/canReadFile'
 import getPhrasesFromFile from './utils/getPhrasesFromFile'
 import getCountryFlag from './utils/getCountryFlag'
+import getAutotranslationPlugin from './getAutotranslationPlugin'
 
 const start = async () => {
   const filePath = process.argv[2] || process.cwd()
@@ -40,6 +42,7 @@ const start = async () => {
     })), { concurrent: true }),
   }, {
     title: 'check phrases',
+    skip: ctx => Object.keys(ctx.extractedPhrases).length >= 0,
     task: (ctx) => {
       ctx.extractedPhrases = ctx.phrases.reduce<Record<string, string>>((memo, phrase) => {
         if (memo[phrase.key] != null && memo[phrase.key] !== phrase.defaultValue) {
@@ -75,6 +78,7 @@ const start = async () => {
     },
   }, {
     title: 'checking existing phrases',
+    skip: () => config.getLocales().length <= 0,
     task: async (ctx) => {
       ctx.locales = await pMap(config.getLocales(), async (locale) => {
         const phrases = await getPhrasesFromFile(locale.file)
@@ -89,6 +93,53 @@ const start = async () => {
         })
         return { ...locale, phrases, translated, untranslated, autotranslated: [] }
       })
+    },
+  }, {
+    title: 'automatically translate new phrases',
+    skip: (ctx) => {
+      const autotranslationOptions = config.getAutotranslationOptions()
+      if (!autotranslationOptions.plugin) return true
+      const hasNewPhrases = ctx.phrases.filter(p => !p.alreadyExists)
+      return !hasNewPhrases || !ctx.locales.find(l => l.autotranslate)
+    },
+    task: async (ctx) => {
+      const autotranslationOptions = config.getAutotranslationOptions()
+      const autotranslateLocales = ctx.locales.filter(l => l.autotranslate)
+      const autotranslate = await getAutotranslationPlugin(autotranslationOptions)
+
+      return new Listr(autotranslateLocales.map(locale => ({
+        title: `${getCountryFlag(locale.code)}   ${locale.name}`,
+        task: () => new Observable((observer) => {
+          let count = 0
+          const update = () => observer.next(`${count}/${locale.untranslated.length} translated`)
+          update()
+
+          const promise = async () => {
+            const translated = await pMap(locale.untranslated, async (key) => {
+              const phrase = ctx.phrases.find(p => p.key === key)
+              if (!phrase) throw new Error(`Cannot find phrase for key '${key}'`)
+              const { text } = await autotranslate({
+                text: phrase.defaultValue,
+                targetLanguage: locale.code,
+              })
+              count += 1
+              return { key, text }
+            }, { concurrency: 10 })
+
+            const localePhrases = await getPhrasesFromFile(locale.file)
+            translated.forEach(({ key, text }) => {
+              localePhrases[key] = text
+            })
+
+            await fs.writeJSON(locale.file, localePhrases, {
+              spaces: 2,
+            })
+          }
+          promise()
+            .then(() => observer.complete())
+            .catch(err => observer.error(err))
+        }),
+      })))
     },
   }])
   const result = await tasks.run()

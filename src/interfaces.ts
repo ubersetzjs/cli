@@ -6,11 +6,23 @@ export interface Locale {
   informal?: boolean,
 }
 
+export interface AutotranslationOptions {
+  plugin?: string,
+}
+
+export type AutotranslationFunction = (options: {
+  text: string,
+  sourceLanguage?: string,
+  targetLanguage: string,
+  informal?: boolean,
+}) => Promise<{ text: string }>
+
 export interface Config {
   functionName: string,
   extractionFile: string,
   baseLocale: string,
   locales: Locale[],
+  autotranslate?: AutotranslationOptions | string,
   patterns: {
     pattern: string,
     extensions: string[],

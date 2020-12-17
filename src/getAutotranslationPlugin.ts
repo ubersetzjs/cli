@@ -1,4 +1,4 @@
-import { AutotranslationOptions, AutotranslationFunction } from './interfaces'
+import { AutotranslationOptions, AutotranslationFunction } from './types'
 
 export default async function getAutotranslationPlugin(
   autotranslationOptions: AutotranslationOptions,

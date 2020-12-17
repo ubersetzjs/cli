@@ -1,5 +1,5 @@
 import loadRc from 'rc'
-import { Config as ConfigType, AutotranslationOptions } from './interfaces'
+import { Config as ConfigType, AutotranslationOptions } from './types'
 
 class Config {
   private config: ConfigType

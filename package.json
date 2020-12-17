@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "bin": {
-    "ubersetz": "dist/index.js"
+    "ubersetz": "dist/cli.js"
   },
   "scripts": {
     "prepare": "npm run build",

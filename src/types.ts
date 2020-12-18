@@ -32,8 +32,6 @@ export interface Config {
 export interface Phrase {
   key: string,
   defaultValue: string,
-  alreadyExists?: boolean,
-  wasChanged?: boolean,
 }
 
 export interface Context {
@@ -41,6 +39,8 @@ export interface Context {
   phrases: Phrase[],
   extractedPhrases: Record<string, string>,
   deletedPhrases: string[],
+  newPhrases: string[],
+  changedPhrases: string[],
   locales: (Locale & {
     phrases: Record<string, string>,
     translated: string[],

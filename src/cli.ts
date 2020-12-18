@@ -4,7 +4,6 @@ import path from 'path'
 import Listr, { ListrTask } from 'listr'
 import fs from 'fs-extra'
 import pMap from 'p-map'
-import { Observable } from 'rxjs'
 import sortBy from 'lodash.sortby'
 import findFiles from './utils/findFiles'
 import config from './config'
@@ -14,6 +13,7 @@ import canReadFile from './utils/canReadFile'
 import getPhrasesFromFile from './utils/getPhrasesFromFile'
 import getCountryFlag from './utils/getCountryFlag'
 import getAutotranslationPlugin from './getAutotranslationPlugin'
+import autotranslatePhrases from './autotranslatePhrases'
 
 const start = async () => {
   const filePath = process.argv[2] || process.cwd()
@@ -42,7 +42,7 @@ const start = async () => {
     })), { concurrent: true }),
   }, {
     title: 'check phrases',
-    skip: ctx => Object.keys(ctx.extractedPhrases).length >= 0,
+    skip: ctx => ctx.phrases.length <= 0,
     task: (ctx) => {
       ctx.extractedPhrases = ctx.phrases.reduce<Record<string, string>>((memo, phrase) => {
         if (memo[phrase.key] != null && memo[phrase.key] !== phrase.defaultValue) {
@@ -57,15 +57,15 @@ const start = async () => {
     },
   }, {
     title: 'apply plurals',
-    skip: ctx => Object.keys(ctx.extractedPhrases).length >= 0,
+    skip: ctx => Object.keys(ctx.extractedPhrases).length <= 0,
     task: (ctx) => {
       ctx.extractedPhrases = Object.keys(ctx.extractedPhrases)
         .reduce<Record<string, string>>((memo, key) => {
           // eslint-disable-next-line max-len
           const result = /(.*){\s*(.*)\s*,\s*plural\s*,\s*one\s*{\s*(.*)\s*}\s*other\s*{\s*(.*)\s*}\s*}(.*)/igm.exec(ctx.extractedPhrases[key])
           if (result) {
-            const plural = result[4].replace('#', '{#{result[2]}}')
-            const singular = result[3].replace('#', '{#{result[2]}}')
+            const plural = result[4].replace('#', `{${result[2]}}`)
+            const singular = result[3].replace('#', `{${result[2]}}`)
             return {
               ...memo,
               [key]: result[1] + singular + result[5],
@@ -85,15 +85,11 @@ const start = async () => {
       if (await canReadFile(extractsFile)) {
         const currentPhrases = await getPhrasesFromFile(extractsFile)
         ctx.deletedPhrases = Object.keys(currentPhrases).filter(key =>
-          ctx.phrases.find(p => p.key === key) == null)
-        ctx.phrases = ctx.phrases.map((phrase) => {
-          const current = currentPhrases[phrase.key]
-          return {
-            ...phrase,
-            alreadyExists: current != null,
-            wasChanged: current !== phrase.defaultValue,
-          }
-        })
+          ctx.extractedPhrases[key] == null)
+        ctx.newPhrases = Object.keys(ctx.extractedPhrases).filter(key =>
+          currentPhrases[key] == null)
+        ctx.changedPhrases = Object.keys(ctx.extractedPhrases).filter(key =>
+          currentPhrases[key] !== ctx.extractedPhrases[key])
       }
       await fs.writeJSON(extractsFile, ctx.extractedPhrases, {
         spaces: 2,
@@ -107,11 +103,11 @@ const start = async () => {
         const phrases = await getPhrasesFromFile(locale.file)
         const translated: string[] = []
         const untranslated: string[] = []
-        ctx.phrases.forEach((phrase) => {
-          if (Object.keys(phrases).includes(phrase.key)) {
-            translated.push(phrase.key)
+        Object.keys(ctx.extractedPhrases).forEach((key) => {
+          if (Object.keys(phrases).includes(key)) {
+            translated.push(key)
           } else {
-            untranslated.push(phrase.key)
+            untranslated.push(key)
           }
         })
         return { ...locale, phrases, translated, untranslated, autotranslated: [] }
@@ -122,8 +118,7 @@ const start = async () => {
     skip: (ctx) => {
       const autotranslationOptions = config.getAutotranslationOptions()
       if (!autotranslationOptions.plugin) return true
-      const hasNewPhrases = ctx.phrases.filter(p => !p.alreadyExists)
-      return !hasNewPhrases || !ctx.locales.find(l => l.autotranslate)
+      return !ctx.locales.find(l => l.autotranslate && l.untranslated.length > 0)
     },
     task: async (ctx) => {
       const autotranslationOptions = config.getAutotranslationOptions()
@@ -132,42 +127,16 @@ const start = async () => {
 
       return new Listr(autotranslateLocales.map(locale => ({
         title: `${getCountryFlag(locale.code)}   ${locale.name}`,
-        task: () => new Observable((observer) => {
-          let count = 0
-          const update = () => observer.next(`${count}/${locale.untranslated.length} translated`)
-          update()
-
-          const promise = async () => {
-            const translated = await pMap(locale.untranslated, async (key) => {
-              const phrase = ctx.phrases.find(p => p.key === key)
-              if (!phrase) throw new Error(`Cannot find phrase for key '${key}'`)
-              const { text } = await autotranslate({
-                text: phrase.defaultValue,
-                targetLanguage: locale.code,
-              })
-              count += 1
-              return { key, text }
-            }, { concurrency: 10 })
-
-            const localePhrases = await getPhrasesFromFile(locale.file)
-            translated.forEach(({ key, text }) => {
-              localePhrases[key] = text
-            })
-
-            await fs.writeJSON(locale.file, localePhrases, {
-              spaces: 2,
-            })
-          }
-          promise()
-            .then(() => observer.complete())
-            .catch(err => observer.error(err))
+        task: () => autotranslatePhrases({
+          locale,
+          phrases: ctx.extractedPhrases,
+          autotranslate,
         }),
-      })))
+      })), { concurrent: true })
     },
   }])
   const result = await tasks.run()
-  const newPhrases = result.phrases.filter(p => !p.alreadyExists)
-  const changedPhrases = result.phrases.filter(p => p.wasChanged)
+  const { newPhrases, changedPhrases } = result
   console.log()
   console.log(`🆕  ${newPhrases.length} new phrases`)
   console.log(`✏️   ${changedPhrases.length} changed phrases`)

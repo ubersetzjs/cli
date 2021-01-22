@@ -32,9 +32,6 @@ const autotranslatePhrases = ({
   promise()
     .then(() => observer.complete())
     .catch(err => observer.error(err))
-    .finally(() => {
-      if (autotranslate.kill) autotranslate.kill()
-    })
 })
 
 export default autotranslatePhrases

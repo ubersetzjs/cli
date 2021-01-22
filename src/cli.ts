@@ -130,14 +130,25 @@ const start = async () => {
       const autotranslateLocales = ctx.locales.filter(l => l.autotranslate)
       const autotranslate = await getAutotranslationPlugin(autotranslationOptions)
 
-      return new Listr(autotranslateLocales.map(locale => ({
-        title: `${getCountryFlag(locale.code)}   ${locale.name}`,
-        task: () => autotranslatePhrases({
-          locale,
-          phrases: ctx.extractedPhrases,
-          autotranslate,
-        }),
-      })), { concurrent: true })
+      return new Listr([{
+        title: 'autotranslating',
+        task: () => new Listr(autotranslateLocales.map(locale => ({
+          title: `${getCountryFlag(locale.code)}   ${locale.name}`,
+          task: () => autotranslatePhrases({
+            locale,
+            phrases: ctx.extractedPhrases,
+            autotranslate,
+          }),
+        })), { concurrent: true }),
+      }, {
+        title: 'cleaning up',
+        task: () => {
+          if (autotranslate.kill) {
+            return autotranslate.kill()
+          }
+          return undefined
+        },
+      }])
     },
   }])
   const result = await tasks.run()

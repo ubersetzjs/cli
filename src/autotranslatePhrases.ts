@@ -1,16 +1,7 @@
 import pMap from 'p-map'
-import fs from 'fs-extra'
 import { Observable } from 'rxjs'
-import getPhrasesFromFile from './utils/getPhrasesFromFile'
 import { AutotranslationFunction, Context } from './types'
-
-const addPhraseToFile = async (file: string, key: string, text: string) => {
-  const localePhrases = await getPhrasesFromFile(file)
-  localePhrases[key] = text
-  await fs.writeJSON(file, localePhrases, {
-    spaces: 2,
-  })
-}
+import addPhraseToFile from './utils/addPhraseToFile'
 
 const autotranslatePhrases = ({
   locale,
@@ -41,6 +32,9 @@ const autotranslatePhrases = ({
   promise()
     .then(() => observer.complete())
     .catch(err => observer.error(err))
+    .finally(() => {
+      if (autotranslate.kill) autotranslate.kill()
+    })
 })
 
 export default autotranslatePhrases

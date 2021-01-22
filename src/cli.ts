@@ -24,6 +24,11 @@ const start = async () => {
       pattern: new RegExp(config.getPatternExtensions().map(e => `\\.${e}$`).join('|')),
     }).then((files) => {
       ctx.files = files
+      ctx.phrases = []
+      ctx.extractedPhrases = {}
+      ctx.deletedPhrases = []
+      ctx.newPhrases = []
+      ctx.changedPhrases = []
     }),
   }, {
     title: 'extracting phrases from files',

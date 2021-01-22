@@ -10,12 +10,16 @@ export interface AutotranslationOptions {
   plugin?: string,
 }
 
-export type AutotranslationFunction = (options: {
+export type BaseAutotranslationFunction = (options: {
   text: string,
   sourceLanguage?: string,
   targetLanguage: string,
   informal?: boolean,
 }) => Promise<{ text: string }>
+
+export interface AutotranslationFunction extends BaseAutotranslationFunction {
+  kill?: () => void,
+}
 
 export interface Config {
   functionName: string,

@@ -14,6 +14,7 @@ import getPhrasesFromFile from './utils/getPhrasesFromFile'
 import getCountryFlag from './utils/getCountryFlag'
 import getAutotranslationPlugin from './getAutotranslationPlugin'
 import autotranslatePhrases from './autotranslatePhrases'
+import writeLocale from './utils/writeLocale'
 
 const start = async () => {
   const filePath = process.argv[2] || process.cwd()
@@ -98,6 +99,21 @@ const start = async () => {
       }
       await fs.writeJSON(extractsFile, ctx.extractedPhrases, {
         spaces: 2,
+      })
+    },
+  }, {
+    title: 'deleting old phrases',
+    skip: () => config.getLocales().length <= 0,
+    task: async (ctx) => {
+      await pMap(config.getLocales(), async (locale) => {
+        const phrases = await getPhrasesFromFile(locale.file)
+        await writeLocale(locale.file, Object.keys(ctx.extractedPhrases).reduce((memo, key) => {
+          if (!phrases[key]) return memo
+          return {
+            ...memo,
+            [key]: phrases[key],
+          }
+        }, {}))
       })
     },
   }, {

@@ -32,7 +32,11 @@ class LocaleManager extends EventEmitter {
       : fileOrMessages
   }
 
-  public translate(key: string, params: Record<string, any>, defaultValue: string) {
+  public translate(
+    key: string,
+    params: Record<string, any> | undefined | null,
+    defaultValue: string,
+  ) {
     const locale = this.getLocale()
     if (!locale || !this.phraseCache[locale]) throw new Error('Locale not loaded')
     const phrases = this.phraseCache[locale]
@@ -48,9 +52,11 @@ class LocaleManager extends EventEmitter {
       value = defaultValue || key
     }
 
-    Object.keys(params || {}).forEach((param) => {
-      value = value.replace(new RegExp(`{${param}}`, 'g'), params[param] == null ? '' : params[param])
-    })
+    if (params != null) {
+      Object.keys(params).forEach((param) => {
+        value = value.replace(new RegExp(`{${param}}`, 'g'), params[param] == null ? '' : params[param])
+      })
+    }
     return value
   }
 }

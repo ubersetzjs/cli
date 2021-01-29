@@ -117,6 +117,18 @@ const start = async () => {
       })
     },
   }, {
+    title: 'copying new phrases to base locale',
+    skip: ctx => !config.getLocales().find(i => i.base) || ctx.newPhrases.length <= 0,
+    task: async (ctx) => {
+      const baseLocale = config.getLocales().find(i => i.base)
+      if (!baseLocale) return
+      const phrases = await getPhrasesFromFile(baseLocale.file)
+      await writeLocale(baseLocale.file, Object.keys(ctx.extractedPhrases).reduce((memo, key) => ({
+        ...memo,
+        [key]: phrases[key] || ctx.extractedPhrases[key],
+      }), {}))
+    },
+  }, {
     title: 'checking existing phrases',
     skip: () => config.getLocales().length <= 0,
     task: async (ctx) => {

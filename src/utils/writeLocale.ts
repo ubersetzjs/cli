@@ -1,7 +1,10 @@
 import fs from 'fs-extra'
+import PQueue from 'p-queue'
+
+const queue = new PQueue({ concurrency: 1 })
 
 export default function writeLocale(file: string, localePhrases: Record<string, string>) {
-  return fs.writeJSON(file, localePhrases, {
+  return queue.add(() => fs.writeJSON(file, localePhrases, {
     spaces: 2,
-  })
+  }))
 }

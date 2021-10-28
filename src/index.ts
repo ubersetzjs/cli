@@ -166,6 +166,7 @@ const start = async () => {
             locale,
             phrases: ctx.extractedPhrases,
             autotranslate,
+            baseLocale: config.getBaseLocale(),
           }),
         })), { concurrent: true }),
       }, {

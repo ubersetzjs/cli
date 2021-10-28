@@ -32,6 +32,10 @@ class Config {
     return this.config.extractionFile
   }
 
+  public getBaseLocale() {
+    return this.config.baseLocale
+  }
+
   public getAutotranslationOptions(): AutotranslationOptions {
     const plugin = !this.config.autotranslate || typeof this.config.autotranslate === 'string'
       ? this.config.autotranslate

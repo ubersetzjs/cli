@@ -7,12 +7,14 @@ const autotranslatePhrases = ({
   locale,
   phrases,
   autotranslate,
+  baseLocale,
 }: {
   locale: Context['locales'][0],
   phrases: Record<string, string>,
   autotranslate: AutotranslationFunction,
+  baseLocale: string,
 }) => new Observable((observer) => {
-  const { untranslated } = locale
+  const { untranslated, informal } = locale
   let count = 0
   const update = () => observer.next(`${count}/${untranslated.length} translated`)
   update()
@@ -22,8 +24,10 @@ const autotranslatePhrases = ({
       const phrase = phrases[key]
       if (!phrase) throw new Error(`Cannot find phrase for key '${key}'`)
       const { text } = await autotranslate({
+        informal,
         text: phrase,
         targetLanguage: locale.code,
+        sourceLanguage: baseLocale,
       })
       // eslint-disable-next-line no-param-reassign
       locale.untranslated = locale.untranslated.filter(i => i !== key)

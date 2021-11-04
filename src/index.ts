@@ -5,6 +5,8 @@ import Listr, { ListrTask } from 'listr'
 import fs from 'fs-extra'
 import pMap from 'p-map'
 import sortBy from 'lodash.sortby'
+import yargs from 'yargs'
+import { hideBin } from 'yargs/helpers'
 import findFiles from './utils/findFiles'
 import config from './config'
 import extractPhrase from './extractPhrase'
@@ -16,8 +18,15 @@ import getAutotranslationPlugin from './getAutotranslationPlugin'
 import autotranslatePhrases from './autotranslatePhrases'
 import writeLocale from './utils/writeLocale'
 
+const { argv } = yargs(hideBin(process.argv))
+const options = {
+  _: [process.cwd()],
+  autotranslation: true,
+  ...argv,
+}
+
 const start = async () => {
-  const filePath = process.argv[2] || process.cwd()
+  const filePath = options._[0] as string
   const tasks = new Listr<Context>([{
     title: 'searching files',
     task: ctx => findFiles(filePath, {
@@ -149,6 +158,7 @@ const start = async () => {
   }, {
     title: 'automatically translate new phrases',
     skip: (ctx) => {
+      if (!options.autotranslation) return true
       const autotranslationOptions = config.getAutotranslationOptions()
       if (!autotranslationOptions.plugin) return true
       return !ctx.locales.find(l => l.autotranslate && l.untranslated.length > 0)

@@ -22,6 +22,9 @@ const { argv } = yargs(hideBin(process.argv))
 const options = {
   _: [process.cwd()],
   autotranslation: true,
+  delete: true,
+  copy: true,
+  write: true,
   ...argv,
 }
 
@@ -95,6 +98,7 @@ const start = async () => {
     },
   }, {
     title: 'write extractions file',
+    skip: () => !options.write,
     task: async (ctx) => {
       const extractsFile = path.join(filePath, config.getExtractionFilePath())
       if (await canReadFile(extractsFile)) {
@@ -112,7 +116,7 @@ const start = async () => {
     },
   }, {
     title: 'deleting old phrases',
-    skip: () => config.getLocales().length <= 0,
+    skip: () => !options.delete || config.getLocales().length <= 0,
     task: async (ctx) => {
       await pMap(config.getLocales(), async (locale) => {
         const phrases = await getPhrasesFromFile(locale.file)
@@ -127,7 +131,8 @@ const start = async () => {
     },
   }, {
     title: 'copying new phrases to base locale',
-    skip: ctx => !config.getLocales().find(i => i.base) || ctx.newPhrases.length <= 0,
+    skip: ctx => !options.copy
+      || !config.getLocales().find(i => i.base) || ctx.newPhrases.length <= 0,
     task: async (ctx) => {
       const baseLocale = config.getLocales().find(i => i.base)
       if (!baseLocale) return

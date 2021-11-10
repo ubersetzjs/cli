@@ -25,6 +25,7 @@ const options = {
   delete: true,
   copy: true,
   write: true,
+  fail: false,
   ...argv,
 }
 
@@ -197,6 +198,8 @@ const start = async () => {
   }])
   const result = await tasks.run()
   const { newPhrases, changedPhrases } = result
+
+  let shouldFail = result.deletedPhrases.length > 0
   console.log()
   console.log(`🆕  ${newPhrases.length} new phrases`)
   console.log(`✏️   ${changedPhrases.length} changed phrases`)
@@ -204,10 +207,17 @@ const start = async () => {
   result.locales.forEach((locale) => {
     console.log()
     console.log(`${getCountryFlag(locale.code)}   ${locale.name}`)
-    if (locale.untranslated.length > 0) console.log(`\t🏳️   ${locale.untranslated.length} untranslated`)
+    if (locale.untranslated.length > 0) {
+      console.log(`\t🏳️   ${locale.untranslated.length} untranslated`)
+      shouldFail = true
+    }
     if (locale.autotranslated.length > 0) console.log(`\t🤖   ${locale.autotranslated.length} automatically translated`)
     if (locale.translated.length > 0) console.log(`\t🏴   ${locale.translated.length} already translated`)
   })
+
+  if (options.fail && shouldFail) {
+    process.exit(1)
+  }
 }
 
 start().catch((err) => {

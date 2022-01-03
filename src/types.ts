@@ -16,6 +16,7 @@ export type BaseAutotranslationFunction = (options: {
   sourceLanguage?: string,
   targetLanguage: string,
   informal?: boolean,
+  concurrency: number,
 }) => Promise<{ text: string }>
 
 export interface AutotranslationFunction extends BaseAutotranslationFunction {

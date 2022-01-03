@@ -30,6 +30,7 @@ const autotranslatePhrases = ({
         text: phrase,
         targetLanguage: locale.code,
         sourceLanguage: baseLocale,
+        concurrency,
       })
       // eslint-disable-next-line no-param-reassign
       locale.untranslated = locale.untranslated.filter(i => i !== key)

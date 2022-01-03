@@ -8,11 +8,13 @@ const autotranslatePhrases = ({
   phrases,
   autotranslate,
   baseLocale,
+  concurrency,
 }: {
   locale: Context['locales'][0],
   phrases: Record<string, string>,
   autotranslate: AutotranslationFunction,
   baseLocale: string,
+  concurrency: number,
 }) => new Observable((observer) => {
   const { untranslated, informal } = locale
   let count = 0
@@ -35,7 +37,7 @@ const autotranslatePhrases = ({
       count += 1
       update()
       await addPhraseToFile(locale.file, key, text)
-    }, { concurrency: 10 })
+    }, { concurrency })
   }
   promise()
     .then(() => observer.complete())

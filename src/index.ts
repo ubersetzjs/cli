@@ -183,6 +183,7 @@ const start = async () => {
             phrases: ctx.extractedPhrases,
             autotranslate,
             baseLocale: config.getBaseLocale(),
+            concurrency: autotranslationOptions.concurrency || 10,
           }),
         })), { concurrent: true }),
       }, {

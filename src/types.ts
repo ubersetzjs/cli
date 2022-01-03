@@ -8,6 +8,7 @@ export interface Locale {
 
 export interface AutotranslationOptions {
   plugin?: string,
+  concurrency?: number,
 }
 
 export type BaseAutotranslationFunction = (options: {

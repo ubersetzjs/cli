@@ -17,6 +17,7 @@ import getCountryFlag from './utils/getCountryFlag'
 import getAutotranslationPlugin from './getAutotranslationPlugin'
 import autotranslatePhrases from './autotranslatePhrases'
 import writeLocale from './utils/writeLocale'
+import extractPlural from './utils/extractPlural'
 
 const { argv } = yargs(hideBin(process.argv))
 const options = {
@@ -79,23 +80,10 @@ const start = async () => {
     skip: ctx => Object.keys(ctx.extractedPhrases).length <= 0,
     task: (ctx) => {
       ctx.extractedPhrases = Object.keys(ctx.extractedPhrases)
-        .reduce<Record<string, string>>((memo, key) => {
-          // eslint-disable-next-line max-len
-          const result = /(.*){\s*(.*)\s*,\s*plural\s*,\s*one\s*{\s*(.*)\s*}\s*other\s*{\s*(.*)\s*}\s*}(.*)/igm.exec(ctx.extractedPhrases[key])
-          if (result) {
-            const plural = result[4].replace('#', `{${result[2]}}`)
-            const singular = result[3].replace('#', `{${result[2]}}`)
-            return {
-              ...memo,
-              [key]: result[1] + singular + result[5],
-              [`${key}_plural`]: result[1] + plural + result[5],
-            }
-          }
-          return {
-            ...memo,
-            [key]: ctx.extractedPhrases[key],
-          }
-        }, {})
+        .reduce<Record<string, string>>((memo, key) => ({
+          ...memo,
+          ...extractPlural(key, ctx.extractedPhrases[key]),
+        }), {})
     },
   }, {
     title: 'write extractions file',

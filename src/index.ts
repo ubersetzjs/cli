@@ -120,8 +120,8 @@ const start = async () => {
     },
   }, {
     title: 'copying new phrases to base locale',
-    skip: ctx => !options.copy
-      || !config.getLocales().find(i => i.base) || ctx.newPhrases.length <= 0,
+    skip: () => !options.copy
+      || !config.getLocales().find(i => i.base),
     task: async (ctx) => {
       const baseLocale = config.getLocales().find(i => i.base)
       if (!baseLocale) return

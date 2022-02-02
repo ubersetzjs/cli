@@ -173,7 +173,7 @@ const start = async () => {
             baseLocale: config.getBaseLocale(),
             concurrency: autotranslationOptions.concurrency || 10,
           }),
-        })), { concurrent: true }),
+        }))),
       }, {
         title: 'cleaning up',
         task: () => {

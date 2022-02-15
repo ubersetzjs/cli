@@ -27,6 +27,7 @@ const options = {
   copy: true,
   write: true,
   fail: false,
+  'autotranslate-parallel': true,
   ...argv,
 }
 
@@ -173,7 +174,7 @@ const start = async () => {
             baseLocale: config.getBaseLocale(),
             concurrency: autotranslationOptions.concurrency || 10,
           }),
-        }))),
+        })), { concurrent: options['autotranslate-parallel'] }),
       }, {
         title: 'cleaning up',
         task: () => {

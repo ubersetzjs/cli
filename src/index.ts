@@ -110,13 +110,15 @@ const start = async () => {
     task: async (ctx) => {
       await pMap(config.getLocales(), async (locale) => {
         const phrases = await getPhrasesFromFile(locale.file)
-        await writeLocale(locale.file, Object.keys(ctx.extractedPhrases).reduce((memo, key) => {
+        const newPhrases = Object.keys(ctx.extractedPhrases).reduce((memo, key) => {
           if (!phrases[key]) return memo
           return {
             ...memo,
             [key]: phrases[key],
           }
-        }, {}))
+        }, {})
+        if (JSON.stringify(phrases) === JSON.stringify(newPhrases)) return
+        await writeLocale(locale.file, newPhrases)
       })
     },
   }, {

@@ -1,9 +1,11 @@
-import fs from 'fs-extra'
+import fs from 'fs/promises'
 import canReadFile from './canReadFile'
 
 export default async function getPhrasesFromFile(file: string): Promise<Record<string, string>> {
   if (await canReadFile(file)) {
-    return (await fs.readJSON(file)) as Record<string, string>
+    const content = await fs.readFile(file, 'utf8')
+    const parsed = JSON.parse(content) as Record<string, string>
+    return parsed
   }
   return {}
 }

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import path from 'path'
+import fs from 'fs/promises'
 import Listr, { ListrTask } from 'listr'
-import fs from 'fs-extra'
 import pMap from 'p-map'
 import sortBy from 'lodash.sortby'
 import yargs from 'yargs'
@@ -18,6 +18,7 @@ import getAutotranslationPlugin from './getAutotranslationPlugin'
 import autotranslatePhrases from './autotranslatePhrases'
 import writeLocale from './utils/writeLocale'
 import extractPlural from './utils/extractPlural'
+import sortObject from './utils/sortObject'
 
 const { argv } = yargs(hideBin(process.argv))
 const options = {
@@ -100,15 +101,13 @@ const start = async () => {
         ctx.changedPhrases = Object.keys(ctx.extractedPhrases).filter(key =>
           currentPhrases[key] !== ctx.extractedPhrases[key])
       }
-      await fs.writeJSON(extractsFile, ctx.extractedPhrases, {
-        spaces: 2,
-      })
+      await writeLocale(extractsFile, ctx.extractedPhrases)
     },
   }, {
     title: 'deleting old phrases',
     skip: () => !options.delete || config.getLocales().length <= 0,
     task: async (ctx) => {
-      await pMap(config.getLocales(), async (locale) => {
+      await Promise.all(config.getLocales().map(async (locale) => {
         const phrases = await getPhrasesFromFile(locale.file)
         const newPhrases = Object.keys(ctx.extractedPhrases).reduce((memo, key) => {
           if (!phrases[key]) return memo
@@ -117,9 +116,9 @@ const start = async () => {
             [key]: phrases[key],
           }
         }, {})
-        if (JSON.stringify(phrases) === JSON.stringify(newPhrases)) return
+        if (JSON.stringify(sortObject(phrases)) === JSON.stringify(sortObject(newPhrases))) return
         await writeLocale(locale.file, newPhrases)
-      })
+      }))
     },
   }, {
     title: 'copying new phrases to base locale',

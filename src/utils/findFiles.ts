@@ -1,6 +1,6 @@
 import path from 'path'
+import fs from 'fs/promises'
 import pFilter from 'p-filter'
-import fs from 'fs-extra'
 import walk from 'ignore-walk'
 
 interface Options {

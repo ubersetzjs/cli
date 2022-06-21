@@ -19,6 +19,7 @@ import autotranslatePhrases from './autotranslatePhrases'
 import writeLocale from './utils/writeLocale'
 import extractPlural from './utils/extractPlural'
 import sortObject from './utils/sortObject'
+import { stringify } from './utils/json'
 
 const { argv } = yargs(hideBin(process.argv))
 const options = {
@@ -116,7 +117,11 @@ const start = async () => {
             [key]: phrases[key],
           }
         }, {})
-        if (JSON.stringify(sortObject(phrases)) === JSON.stringify(sortObject(newPhrases))) return
+        const [currentString, newString] = await Promise.all([
+          stringify(sortObject(phrases)),
+          stringify(sortObject(newPhrases)),
+        ])
+        if (currentString === newString) return
         await writeLocale(locale.file, newPhrases)
       }))
     },
@@ -208,6 +213,8 @@ const start = async () => {
 
   if (options.fail && shouldFail) {
     process.exit(1)
+  } else {
+    process.exit(0)
   }
 }
 

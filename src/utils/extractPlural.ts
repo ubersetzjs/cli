@@ -28,7 +28,6 @@ function extractSingle(values: ReturnValue): ReturnValue {
 
 export default function extractPlural(key: string, content: string): Record<string, string> {
   const { singular, plural } = extractSingle({ singular: content, plural: '' })
-  if (key === 'settings_plots_new_mergable_plots_description') console.log({key, singular, plural})
   return {
     [key]: singular,
     ...plural ? { [`${key}_plural`]: plural } : {},
